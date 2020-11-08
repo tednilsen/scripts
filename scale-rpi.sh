@@ -1,7 +1,12 @@
 #!/bin/bash
 
-# to show the current scaling kernel:
-# vcgencmd scaling_kernel
+# scale-rpi.sh
+#   a script to change the current scaling kernel of the RPi
+#   https://github.com/tednilsen/scripts/raw/main/scale-rpi.sh
+
+# -------------------------------------------------
+
+# info: my bash script skills are terrible!
 
 # to set skaling, just set the parameters:
 # vcgencmd scaling_kernel 0 -2 -6 -8 -10 -8 -3 2 18 50 82 119 155 187 213 227 227 213 187 155 119 82 50 18 2 -3 -8 -10 -8 -6 -2 0   0
@@ -14,6 +19,8 @@
 # SCALERLIB_KERNELS_TYPES_SINC_HAMMING_3PI=6, (default)
 # SCALERLIB_KERNELS_TYPES_SINC_HAMMING_2_5PI=7,
 # SCALERLIB_KERNELS_TYPES_NEAREST_NEIGHBOUR=8,
+
+# -------------------------------------------------
 
 VCMAX=9
 
@@ -31,18 +38,43 @@ VCCMD=(	"23 22 21 18 13 8 2 -6 18 41 67 96 129 160 191 222 222 191 160 129 96 67
 
 QUIET=0
 NUM=0
+P=0
 for ARG in $@; do
-  [[ $ARG =~ ^[qQ] ]] && QUIET=1
-  [[ $ARG =~ ^[1-$VCMAX]$ ]] && NUM=$ARG
+  # prev arg was p? we have launch parameter so grab it
+  if [[ $P = 1 ]]; then
+    LAUNCH=$ARG
+    P=0
+    PRG=1
+  else
+    # else check args
+    [[ $ARG =~ ^[qQ] ]] && QUIET=1
+    [[ $ARG =~ ^[1-$VCMAX]$ ]] && NUM=$ARG
+    # p argument? then prepare that next arg is the launch
+    [[ $ARG =~ ^[pP] ]] && P=1
+  fi;
 done;
 
 if [[ $NUM =~ ^[1-$VCMAX]$ ]]; then
+  # grab scaling_kernel if we shall launch
+  if [[ $PRG -eq 1 ]]; then
+    SCALE=$(vcgencmd scaling_kernel)
+    SCALE=${SCALE#*=}
+  fi;
   ARR=($VCNAME)
   NUM=$(( $NUM - 1 ))
   SEL=${ARR[$NUM]}
   [ $QUIET -eq 0 ] && echo "Selected $SEL scaling"
   vcgencmd "scaling_kernel ${VCCMD[$NUM]}" > /dev/null
+  # launch program? ...then launch and resore scaling kernel
+  if [[ $PRG -eq 1 ]]; then
+    # launch program
+    ./"${LAUNCH}"
+    # restore scaling kernel
+    vcgencmd "scaling_kernel ${SCALE}" > /dev/null
+  fi;
 else
+  echo
+  echo "RPi Scaling Kernel launcher..."
   echo
   echo "Please input a number between 1..$VCMAX to select scaling mode:"
   echo "----------------------------------------------------------"
@@ -51,8 +83,23 @@ else
     echo $NUM $NAME
     NUM=$(( $NUM + 1 ))
   done;
-  echo '...add "q" to the arguments for quiet operation...'
   echo "----------------------------------------------------------"
+  echo
+  echo "Argument:        Info:"
+  echo "1-9              Select scaling kernel"
+  echo "q                Quiet"
+  echo 'p + "program"    Launch program'
+  echo
+  echo "----------------------------------------------------------"
+  echo
+  echo "example 1: Set scaling 8 (NEAREST_NEIGHBOUR):"
+  echo "./scale-rpi.sh 2"
+  echo
+  echo "example 2: Quiet set scaling 4 (HALF_FIRST_SIDE_LOBE):"
+  echo "./scale-rpi.sh q 4"
+  echo
+  echo " example 3: Quiet set scaling 2 (BLACKMAN), launch amiberry, restore scaling kernel when amiberry finnishes."
+  echo "./scale-rpi.sh q 2 p amiberry"
   echo
 fi
 
