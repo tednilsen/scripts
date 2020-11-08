@@ -40,10 +40,13 @@ QUIET=0
 NUM=0
 P=0
 for ARG in $@; do
-  # prev arg was p? we have launch parameter so grab it
-  if [[ $P = 1 ]]; then
+  # add args to prg
+  if [[ $P = 2 ]]; then
+    LARG+=" $ARG"
+  elif [[ $P = 1 ]]; then
     LAUNCH=$ARG
-    P=0
+    LARG=""
+    P=2
     PRG=1
   else
     # else check args
@@ -67,8 +70,8 @@ if [[ $NUM =~ ^[1-$VCMAX]$ ]]; then
   vcgencmd "scaling_kernel ${VCCMD[$NUM]}" > /dev/null
   # launch program? ...then launch and resore scaling kernel
   if [[ $PRG -eq 1 ]]; then
-    # launch program
-    ./"${LAUNCH}"
+    # launch program + args
+    ./"${LAUNCH}" $LARG
     # restore scaling kernel
     vcgencmd "scaling_kernel ${SCALE}" > /dev/null
   fi;
@@ -85,10 +88,13 @@ else
   done;
   echo "----------------------------------------------------------"
   echo
-  echo "Argument:        Info:"
-  echo "1-9              Select scaling kernel"
-  echo "q                Quiet"
-  echo 'p + "program"    Launch program'
+  echo "Argument:               Info:"
+  echo "1-9                     Select scaling kernel"
+  echo "q                       Quiet"
+  echo 'p + "program"           Launch program'
+  echo 'p + "program" + args    Launch program (with parameters)'
+  echo
+  echo 'info: p + args must be last'
   echo
   echo "----------------------------------------------------------"
   echo
@@ -100,6 +106,9 @@ else
   echo
   echo " example 3: Quiet set scaling 2 (BLACKMAN), launch amiberry, restore scaling kernel when amiberry finnishes."
   echo "./scale-rpi.sh q 2 p amiberry"
+  echo
+  echo " example 4: Quiet set scaling 2 (BLACKMAN), launch amiberry with config, restore scaling kernel when amiberry finnishes."
+  echo "./scale-rpi.sh q 2 p amiberry -f conf/A1200WB.uae"
   echo
 fi
 
