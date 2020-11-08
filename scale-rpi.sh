@@ -42,7 +42,7 @@ P=0
 for ARG in $@; do
   # add args to prg
   if [[ $P = 2 ]]; then
-    LARG+=" $ARG"
+    LARG+="$ARG "
   elif [[ $P = 1 ]]; then
     LAUNCH=$ARG
     LARG=""
